@@ -2,13 +2,15 @@
 #include <ESP8266mDNS.h>
 #include <WiFiUdp.h>
 #include <ArduinoOTA.h>
-
+#include <SD.h>
+#include <SPI.h>
 // network credentials
-const char* ssid = "chuna";
-const char* password = "belisendiri";
+const char* ssid = "bens";
+const char* password = "mesinrekindo";
 
 const int LED = 4;
 
+ESP8266WebServer server(80);
 //over the air upload code
 //**DO NOT REMOVE**//
 void ota() {
@@ -46,17 +48,31 @@ void ota() {
 //end of OTA code
 
 void setup() {
-  Serial.begin(115200);           //Serial Monitor Activated
-  ota();                          //Called OTA
-  pinMode(LED, OUTPUT);           //Test if the OTA Work, you cam remove this(LED GPIO4)
+  Serial.begin(115200);  //Serial Monitor Activated
+  ota();                 //Called OTA
+  // initialize SD card
+  Serial.println("Initializing SD card...");
+  if (!SD.begin(4)) {
+    Serial.println("ERROR - SD card initialization failed!");
+    return;  // init failed
+  }
+  Serial.println("SUCCESS - SD card initialized.");
+  // check for index.htm file
+  if (!SD.exists("index.htm")) {
+    Serial.println("ERROR - Can't find index.htm file!");
+    return;  // can't find index file
+  }
+  Serial.println("SUCCESS - Found index.htm file.");
+  server.begin();
 }
 
 void loop() {
-  ArduinoOTA.handle();            //OTA Parts
-  //LED Blink Simple Code
-  digitalWrite(LED, HIGH);        
-  delay(200);
-  digitalWrite(LED, LOW);
-  delay(200);
-  //End LED Blink Simple Code
+  ArduinoOTA.handle();             //OTA Parts
+  webFile = SD.open("index.htm");  // open web page file
+  if (webFile) {
+    while (webFile.available()) {
+      client.write(webFile.read());  // send web page to client
+    }
+    webFile.close();
+  }
 }
