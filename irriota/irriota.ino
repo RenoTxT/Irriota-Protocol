@@ -10,7 +10,10 @@ const char* password = "mesinrekindo";
 
 const int LED = 4;
 
-ESP8266WebServer server(80);
+File webFile;
+
+WiFiServer server(80);
+
 //over the air upload code
 //**DO NOT REMOVE**//
 void ota() {
@@ -68,6 +71,7 @@ void setup() {
 
 void loop() {
   ArduinoOTA.handle();             //OTA Parts
+  WiFiClient client = server.available(); //Listen for incoming client
   webFile = SD.open("index.htm");  // open web page file
   if (webFile) {
     while (webFile.available()) {
