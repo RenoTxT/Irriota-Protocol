@@ -2,8 +2,9 @@
 #include <ESP8266mDNS.h>
 #include <WiFiUdp.h>
 #include <ArduinoOTA.h>
-#include <SD.h>
-#include <SPI.h>
+#include <WiFiClient.h>
+#include <ESP8266WebServer.h>
+
 // network credentials
 const char* ssid = "bens";
 const char* password = "mesinrekindo";
@@ -12,7 +13,7 @@ const int LED = 4;
 
 File webFile;
 
-WiFiServer server(80);
+ESP8266WebServer server(80);
 
 //over the air upload code
 //**DO NOT REMOVE**//
@@ -50,33 +51,107 @@ void ota() {
 }
 //end of OTA code
 
+void handleLogin() {
+  String content = "<!DOCTYPE html><html>";
+  content += "<head><title>IRRIOTA</title>";
+  content += "<style>";
+  content += "html {";
+  content += "font-family: Serif;";
+  content += "display: inline-block;";
+  content += "margin: 0px auto;";
+  content += " text-align: center;";
+  content += " }";
+  content += " body {";
+  content += " margin-top: 50px;";
+  content += " }";
+  content += "h1 {";
+  content += "  color: #027373;";
+  content += "   margin: 50px auto 30px;";
+  content += "  }";
+  content += " h3 {";
+  content += "    color: #038C7F;";
+  content += "    margin-bottom: 30px;";
+  content += " }";
+  content += " h4 {";
+  content += "      color: #FFFFF;";
+  content += "       margin-bottom: 30px;";
+  content += "    }";
+  content += "    .button {";
+  content += "      display: block;";
+  content += "      width: 80px;";
+  content += "           background-color: #1abc9c;";
+  content += "border: none;";
+  content += "    color: white;";
+  content += "     padding: 13px 30px;";
+  content += "    text-decoration: none;";
+  content += "          font-size: 25px;";
+  content += "           margin: 0px auto 35px;";
+  content += "           cursor: pointer;";
+  content += "          border-radius: 4px;";
+  content += "      }";
+  content += "       .button-on {";
+  content += "          background-color: #1abc9c;";
+  content += "      }";
+  content += "      .button-on:active {";
+  content += "          background-color: #16a085;";
+  content += "     }";
+  content += "      .button-off {";
+  content += "         background-color: #444444;";
+  content += "      }";
+  content += "     .button-off:active {";
+  content += "        background-color: #2c3e50;";
+  content += "    }";
+  content += "   p {";
+  content += "        font-size: 14px;";
+  content += "        color: #888;";
+  content += "        margin-bottom: 10px;";
+  content += "   }";
+  content += "   .myButton {";
+  content += "       box-shadow: 0px 10px 14px -7px #3e7327;";
+  content += "      background: linear-gradient(to bottom, #77b55a 5%, #72b352 100%);";
+  content += "      background-color: #77b55a;";
+  content += "      border-radius: 4px;";
+  content += "      border: 1px solid #4b8f29;";
+  content += "      display: inline-block;";
+  content += "      cursor: pointer;";
+  content += "      color: #ffffff;";
+  content += "      font-family: Arial;";
+  content += "      font-size: 13px;";
+  content += "     font-weight: bold;";
+  content += "     padding: 6px 12px;";
+  content += "     text-decoration: none;";
+  content += "      text-shadow: 0px 1px 0px #5b8a3c;";
+  content += "   }";
+  content += " .myButton:hover {";
+  content += "        background: linear-gradient(to bottom, #72b352 5%, #77b55a 100%);";
+  content += "         background-color: #72b352;";
+  content += "    }";
+  content += "    .myButton:active {";
+  content += "         position: relative;";
+  content += "         top: 1px;";
+  content += "       }";
+  content += "   </style>";
+  content += "   </head>";
+  content += "  <body>";
+  content += "  <h1>IrriOTA Control<h1>";
+  content += "<h3>Control Mode</h3>";
+  content += "<p>LED On / Off</p>";
+  content += "<a class=\" myButton \" href=\"/led1off\">ON</a>";
+  content += "<p>Pompa air On / Off</p>";
+  content += "<a class=\"myButton \" href=\"/motor\">ON</a>";
+  content += "</body>";
+  content += "</html>";
+  server.send(200, "text/html", content);
+}
+
 void setup() {
   Serial.begin(115200);  //Serial Monitor Activated
   ota();                 //Called OTA
-  // initialize SD card
-  Serial.println("Initializing SD card...");
-  if (!SD.begin(4)) {
-    Serial.println("ERROR - SD card initialization failed!");
-    return;  // init failed
-  }
-  Serial.println("SUCCESS - SD card initialized.");
-  // check for index.htm file
-  if (!SD.exists("index.htm")) {
-    Serial.println("ERROR - Can't find index.htm file!");
-    return;  // can't find index file
-  }
-  Serial.println("SUCCESS - Found index.htm file.");
   server.begin();
+  server.on("/", handleLogin);
 }
 
 void loop() {
-  ArduinoOTA.handle();             //OTA Parts
-  WiFiClient client = server.available(); //Listen for incoming client
-  webFile = SD.open("index.htm");  // open web page file
-  if (webFile) {
-    while (webFile.available()) {
-      client.write(webFile.read());  // send web page to client
-    }
-    webFile.close();
-  }
+  ArduinoOTA.handle();  //OTA Parts
+  server.handleClient();
 }
